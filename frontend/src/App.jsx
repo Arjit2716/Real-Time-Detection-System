@@ -12,19 +12,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 // ─── Config ────────────────────────────────────────────────────────────────
-const isLocalhost = window.location.hostname === "localhost";
+// VITE_BACKEND_URL is injected at build time by Render (or empty for local dev)
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
+const BACKEND_WS  = BACKEND_URL.replace(/^http/, "ws"); // http→ws, https→wss
 
-const WS_INGEST =
-  isLocalhost
-    ? "ws://localhost:8000/feed/ingest"
-    : `ws://${window.location.host}/feed/ingest`;
+const WS_INGEST   = BACKEND_WS  ? `${BACKEND_WS}/feed/ingest`  : `ws://${window.location.host}/feed/ingest`;
+const STREAM_URL  = BACKEND_URL ? `${BACKEND_URL}/feed/stream`  : `http://localhost:8000/feed/stream`;
+const API_BASE    = BACKEND_URL || "http://localhost:8000";
 
-const STREAM_URL =
-  isLocalhost
-    ? "http://localhost:8000/feed/stream"
-    : "/feed/stream";
-
-const API_BASE = isLocalhost ? "http://localhost:8000" : "";
 
 const CAPTURE_FPS = 10;
 const CAPTURE_INTERVAL = Math.floor(1000 / CAPTURE_FPS);

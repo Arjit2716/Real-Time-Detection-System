@@ -8,11 +8,16 @@ import os
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 
-# Default to SQLite for local dev; override with env var for PostgreSQL in Docker
+# Default to SQLite for local dev; override with env var for PostgreSQL in Render/Docker
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "sqlite+aiosqlite:///./facedetect.db",
 )
+
+# Render provides postgresql:// but asyncpg requires postgresql+asyncpg://
+if DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+
 
 engine = create_async_engine(
     DATABASE_URL,
