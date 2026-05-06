@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: facedetect_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: faceuser
+      POSTGRES_PASSWORD: facepassword
+      POSTGRES_DB: facedetect
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U faceuser -d facedetect"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: facedetect_backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://faceuser:facepassword@db:5432/facedetect
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: facedetect_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
