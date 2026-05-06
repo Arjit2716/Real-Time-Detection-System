@@ -1,9 +1,6 @@
-"""
-database.py — Async SQLAlchemy engine + session.
+# database.py - async SQLAlchemy setup
+# SQLite for local dev, PostgreSQL in production via DATABASE_URL env var
 
-Local dev:  SQLite via aiosqlite  (no server needed)
-Production: Set DATABASE_URL to postgresql+asyncpg://...
-"""
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase

@@ -1,19 +1,5 @@
-"""
-main.py — FastAPI backend for Real-Time Face Detection
-
-Face detection: UltraFace ONNX model via onnxruntime
-               (No OpenCV, No dlib, No compilation required)
-Image drawing:  Pillow (PIL)
-Database:       SQLite via aiosqlite + SQLAlchemy async
-
-Three endpoints
-───────────────
-  1. WS  /feed/ingest      Receive raw JPEG frames from browser
-  2. GET /feed/stream       Serve annotated video as MJPEG stream
-  3. GET /api/roi           Return stored ROI records from DB
-  GET /api/roi/latest       Most recent ROI
-  GET /health               Health check
-"""
+# main.py - FastAPI backend
+# Endpoints: WS /feed/ingest, GET /feed/stream, GET /api/roi
 
 from __future__ import annotations
 
@@ -248,17 +234,7 @@ async def _broadcast(frame: bytes):
 
 @app.websocket("/feed/ingest")
 async def feed_ingest(websocket: WebSocket):
-    """
-    Endpoint 1: Receive raw JPEG frames from the browser.
-
-    Client sends:  JPEG as base64 data-URL  or  raw binary bytes
-    For each frame:
-      - Decode via Pillow (no OpenCV)
-      - Detect face via UltraFace ONNX (no OpenCV)
-      - Draw bounding box via Pillow (no OpenCV)
-      - Broadcast annotated JPEG to all /feed/stream subscribers
-      - Persist ROI to SQLite (rate-limited to 1/second)
-    """
+    """Receive JPEG frames from the browser, detect faces, broadcast annotated frames."""
     await websocket.accept()
     log.info("Ingest WebSocket connected.")
     last_save = 0.0
@@ -341,16 +317,9 @@ async def _mjpeg_gen(queue: asyncio.Queue[bytes]) -> AsyncGenerator[bytes, None]
         pass
 
 
-@app.get("/feed/stream", summary="Endpoint 2: MJPEG stream of annotated video")
+@app.get("/feed/stream")
 async def feed_stream():
-    """
-    Returns an MJPEG multipart stream of annotated video frames.
-    Can be loaded directly by an HTML <img> tag:
-
-        <img src="http://localhost:8000/feed/stream">
-
-    Each frame has the face bounding box drawn on it with Pillow.
-    """
+    """MJPEG stream of annotated frames. Load with <img src='/feed/stream'>."""
     q: asyncio.Queue[bytes] = asyncio.Queue(maxsize=4)
     _stream_queues.append(q)
     if _latest_frame:
@@ -365,19 +334,11 @@ async def feed_stream():
 # ENDPOINT 3 — GET /api/roi
 # ─────────────────────────────────────────────────────────────────────────────
 
-@app.get("/api/roi", summary="Endpoint 3: Stored ROI records")
+@app.get("/api/roi")
 async def get_roi(
     limit: int = Query(default=50, ge=1, le=500),
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    Returns the most recent face ROI (bounding box) records from the database.
-
-    Each record contains:
-      - bounding_box: { top, right, bottom, left } (pixel coords)
-      - dimensions:   { width, height, area, center_x, center_y }
-      - detected_at:  ISO 8601 timestamp
-    """
     result = await db.execute(
         select(ROI).order_by(ROI.detected_at.desc()).limit(limit)
     )
