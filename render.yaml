@@ -1,6 +1,24 @@
-databases:
-  - name: facedetect-db  
-      databaseName: facedetect
-          user: faceuser
-              plan: free
-              
+databases:  - name: facedetect-db    databaseName: facedetect    user: faceuser    plan: free
+
+services:  - type: web    name: facedetect-backend    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+        dockerContext: ./backend
+            plan: free
+                envVars:
+                      - key: DATABASE_URL
+                              fromDatabase:
+                                        name: facedetect-db
+                                                  property: connectionString
+
+                                                    - type: static
+                                                        name: facedetect-frontend
+                                                            rootDir: frontend
+                                                                buildCommand: npm install && npm run build
+                                                                    publishPath: dist
+                                                                        envVars:
+                                                                              - key: VITE_BACKEND_URL
+                                                                                      fromService:
+                                                                                                type: web
+                                                                                                          name: facedetect-backend
+                                                                                                                    property: host
+                                                                                                                    
